@@ -11,7 +11,7 @@ import org.springframework.context.annotation.Profile;
 public class LoadBalancedRoutesConfig {
 
     @Bean
-    public RouteLocator loadBalancedRoutes(RouteLocatorBuilder builder){
+    public RouteLocator loadBalancedRoutes(RouteLocatorBuilder builder) {
         return builder.routes()
                 .route(r -> r.path("/api/v1/beer*", "/api/v1/beer/*", "/api/v1/beerUpc/*")
                         .metadata("id", "beer-service")
@@ -20,8 +20,15 @@ public class LoadBalancedRoutesConfig {
                         .metadata("id", "order-service")
                         .uri("lb://order-service"))
                 .route(r -> r.path("/api/v1/beer/*/inventory")
+                        .filters(f -> f.circuitBreaker(config -> config
+                                .setName("inventoryCB")
+                                .setFallbackUri("forward:/inventory-fallback")
+                                .setRouteId("inv-failover")))
                         .metadata("id", "inventory-service")
                         .uri("lb://inventory-service"))
+                .route(r -> r.path("/inventory-failover")
+                        .metadata("id", "inventory-service")
+                        .uri("lb://inventory-failover"))
                 .build();
     }
 }
